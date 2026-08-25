@@ -971,6 +971,7 @@ class PlotAccessor:
         element: str | None = None,
         color: ColorLike | list[str] | None = None,
         *,
+        background_label: int = 0,
         groups: list[str] | str | None = None,
         contour_px: int | None = 3,
         palette: dict[str, str] | list[str] | str | None = None,
@@ -1018,6 +1019,9 @@ class PlotAccessor:
             each panel auto-scales independently, and ``show(ncols=...)`` controls the grid width. Multi-panel
             color requires a single coordinate system and only one ``render_*`` call in the chain may pass a list
             (other calls use a scalar color and are drawn into every panel as a shared background).
+        background_label : int, default 0
+            Value in the labels raster that represents background. This value is excluded from annotation lookup
+            and rendered as background. Set this to a nonzero value when label ``0`` is a valid foreground label.
         groups : list[str] | str | None
             When using `color` and the key represents discrete labels, `groups` can be used to show only a subset of
             them. By default, non-matching labels are hidden. To show non-matching labels, set ``na_color`` explicitly.
@@ -1100,6 +1104,7 @@ class PlotAccessor:
             lambda color_value: _validate_label_render_params(
                 self._sdata,
                 element=element,
+                background_label=background_label,
                 cmap=cmap,
                 color=color_value,
                 contour_px=contour_px,
@@ -1132,6 +1137,7 @@ class PlotAccessor:
                 )
                 sdata.plotting_tree[f"{n_steps + 1}_render_labels"] = LabelsRenderParams(
                     element=element,
+                    background_label=param_values["background_label"],
                     color=param_values["color"],
                     col_for_color=param_values["col_for_color"],
                     col_for_outline_color=param_values["col_for_outline_color"],

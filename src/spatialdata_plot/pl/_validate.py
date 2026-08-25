@@ -436,6 +436,15 @@ def _check_contour_px_type(param_dict: dict[str, Any]) -> None:
         raise TypeError("Parameter 'contour_px' must be an integer.")
 
 
+def _check_background_label(param_dict: dict[str, Any]) -> None:
+    background_label = param_dict.get("background_label")
+    if background_label is None:
+        return
+    if isinstance(background_label, bool) or not isinstance(background_label, (int, np.integer)):
+        raise TypeError("Parameter 'background_label' must be an integer.")
+    param_dict["background_label"] = int(background_label)
+
+
 def _check_color(param_dict: dict[str, Any], element_type: str) -> None:
     color = param_dict.get("color")
     if color and element_type in {
@@ -804,6 +813,7 @@ def _type_check_params(param_dict: dict[str, Any], element_type: str) -> dict[st
     _check_element(param_dict, element_type)
     _check_channel(param_dict)
     _check_contour_px_type(param_dict)
+    _check_background_label(param_dict)
     _check_color(param_dict, element_type)
     _check_outline(param_dict, element_type)
     _check_contour_px_range(param_dict)  # must stay after outline (preserves first-error order)
@@ -905,6 +915,7 @@ def _validate_as_points_size(size: float) -> None:
 def _validate_label_render_params(
     sdata: sd.SpatialData,
     element: str | None,
+    background_label: int,
     cmap: list[Colormap | str] | Colormap | str | None,
     color: ColorLike | None,
     fill_alpha: float | int | None,
@@ -925,6 +936,7 @@ def _validate_label_render_params(
     param_dict: dict[str, Any] = {
         "sdata": sdata,
         "element": element,
+        "background_label": background_label,
         "fill_alpha": fill_alpha,
         "contour_px": contour_px,
         "groups": groups,
@@ -949,6 +961,7 @@ def _validate_label_render_params(
         _ = param_dict["sdata"][el]
 
         element_params[el] = {}
+        element_params[el]["background_label"] = param_dict["background_label"]
         element_params[el]["na_color"] = param_dict["na_color"]
         element_params[el]["cmap"] = param_dict["cmap"]
         element_params[el]["norm"] = param_dict["norm"]

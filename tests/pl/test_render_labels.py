@@ -768,6 +768,40 @@ def test_render_labels_rejects_background_instance_id_in_table():
         plt.close(fig)
 
 
+def test_render_labels_accepts_explicit_nonzero_background_label():
+    labels_data = np.full((20, 20), 3, dtype=np.int32)
+    labels_data[3:8, 3:8] = 0
+    labels_data[8:13, 8:13] = 1
+    labels_data[12:17, 12:17] = 2
+    labels = Labels2DModel.parse(labels_data, dims=["y", "x"])
+
+    obs = pd.DataFrame(
+        {
+            "region": pd.Categorical(["lbl"] * 3),
+            "instance_id": [0, 1, 2],
+            "domain": pd.Categorical(["A", "B", "C"]),
+        }
+    )
+    table = TableModel.parse(
+        AnnData(X=np.zeros((3, 1)), obs=obs),
+        region="lbl",
+        region_key="region",
+        instance_key="instance_id",
+    )
+    sdata = SpatialData(labels={"lbl": labels}, tables={"t": table})
+
+    fig, ax = plt.subplots()
+    try:
+        sdata.pl.render_labels(
+            "lbl",
+            color="domain",
+            table_name="t",
+            background_label=3,
+        ).pl.show(ax=ax)
+    finally:
+        plt.close(fig)
+
+
 def test_render_labels_disjoint_instance_ids_clear_error():
     # regression test for #603: disjoint instance_id values must raise a clear ValueError
     arr = np.zeros((20, 20), dtype=np.int32)

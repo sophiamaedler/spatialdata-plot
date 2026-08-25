@@ -2255,6 +2255,7 @@ def _render_labels(
     col_for_color = render_params.col_for_color
     groups = render_params.groups
     scale = render_params.scale
+    background_label = render_params.background_label
 
     # When fill is a literal (no `color=` column) but outline points to an obs column,
     # promote the outline table to be the "active" table for instance_id derivation so
@@ -2326,24 +2327,24 @@ def _render_labels(
     # rasterize mask below; compute them once over the (possibly rasterized) raster.
     unique_labels = np.unique(label.values)
 
-    if crop_labels is not None and not np.any(unique_labels != 0):
+    if crop_labels is not None and not np.any(unique_labels != background_label):
         # The crop window covers no labels (only background). Nothing to draw; the panel's axis
         # limits already clip to the box, so return before the instance-overlap/colour machinery.
         return
 
     if table_name is None:
-        instance_id = unique_labels
+        instance_id = unique_labels[unique_labels != background_label]
         table = None
     else:
         _check_instance_ids_overlap(sdata_filt, table_name, element, unique_labels)
         _, region_key, instance_key = get_table_keys(sdata[table_name])
         table = sdata[table_name][sdata[table_name].obs[region_key].isin([element])]
 
-        if (table.obs[instance_key] == 0).any():
+        if (table.obs[instance_key] == background_label).any():
             raise ValueError(
-                f"Table '{table_name}' contains instance_id=0 for element '{element}'. Label value 0 is "
-                "reserved for background and must not appear in the annotation table. Remove the row with "
-                "instance_id=0 before plotting."
+                f"Table '{table_name}' contains instance_id={background_label} for element '{element}'. "
+                f"Label value {background_label} is reserved for background and must not appear in the annotation "
+                "table. Remove the corresponding row before plotting."
             )
 
         # get instance id based on subsetted table
@@ -2369,6 +2370,7 @@ def _render_labels(
         table_layer=table_layer,
         render_type="labels",
         coordinate_system=coordinate_system,
+        background_label=background_label,
     )
 
     # Outline color lookup must run BEFORE any masking so the returned vector aligns to
@@ -2391,6 +2393,7 @@ def _render_labels(
             table_layer=table_layer,
             render_type="labels",
             coordinate_system=coordinate_system,
+            background_label=background_label,
         )
         # Align to instance_id so the rasterize/groups masks (computed against
         # instance_id) can be applied without IndexError when the outline table
@@ -2416,7 +2419,7 @@ def _render_labels(
         matching_ids = instance_id[keep_vec]
         keep_mask = np.isin(label.values, matching_ids)
         label = label.copy()
-        label.values[~keep_mask] = 0
+        label.values[~keep_mask] = background_label
         instance_id = instance_id[keep_vec]
         color_spec = color_spec.filter(keep_vec)
         if outline_color_spec is not None:
@@ -2435,9 +2438,12 @@ def _render_labels(
         # downsampled to ~display resolution above) and draw with its `trans_data`, so this is cheap
         # and the dots land where the cells are. Centroid error is sub-pixel at display resolution.
         logger.info("`as_points=True`: rendering label centroids; `contour_px` and `outline_*` are ignored.")
-        keep = instance_id != 0  # background label 0 has no centroid
+        keep = instance_id != background_label
         point_ids = instance_id[keep]
-        labels, x_idx, y_idx, _area = _stream_label_centroid_stats(label.data)
+        labels, x_idx, y_idx, _area = _stream_label_centroid_stats(
+            label.data,
+            background_label=background_label,
+        )
         centroids = pd.DataFrame(
             {
                 "x": _pixel_to_coord(x_idx, label.coords["x"].values),

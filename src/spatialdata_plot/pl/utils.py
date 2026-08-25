@@ -1175,7 +1175,11 @@ def _pixel_to_coord(idx: ArrayLike, coord: ArrayLike) -> ArrayLike:
     return coord[0] + np.asarray(idx) * spacing
 
 
-def _stream_label_centroid_stats(data: Any) -> tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
+def _stream_label_centroid_stats(
+    data: Any,
+    *,
+    background_label: int = 0,
+) -> tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
     """Per-label ``(labels, mean_x_index, mean_y_index, area)`` via a streaming bincount aggregator.
 
     Streams the raster block by block — one chunk in memory at a time for a dask array, a
@@ -1183,7 +1187,7 @@ def _stream_label_centroid_stats(data: Any) -> tuple[ArrayLike, ArrayLike, Array
     ``sum_x`` and ``sum_y``. Labels are relabelled to a dense ``0..k-1`` range, so memory is
     O(number of distinct labels), independent of the raster size *and* of the label-id magnitude
     (sparse/global ids do not blow it up). The reduction is additive, so it is exact across block
-    boundaries. Background label 0 is excluded.
+    boundaries. ``background_label`` is excluded.
     """
     n_rows, n_cols = data.shape
     if hasattr(data, "chunks"):  # dask
@@ -1221,7 +1225,7 @@ def _stream_label_centroid_stats(data: Any) -> tuple[ArrayLike, ArrayLike, Array
         sum_x += np.bincount(idx, weights=cols, minlength=k)
         sum_y += np.bincount(idx, weights=rows, minlength=k)
 
-    keep = uniq != 0  # drop background; every kept label has count >= 1
+    keep = uniq != background_label  # drop background; every kept label has count >= 1
     return uniq[keep], sum_x[keep] / count[keep], sum_y[keep] / count[keep], count[keep]
 
 

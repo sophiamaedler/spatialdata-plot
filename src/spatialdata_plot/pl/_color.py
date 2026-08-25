@@ -36,9 +36,7 @@ from spatialdata import (
 )
 from spatialdata._core.query.relational_query import _locate_value
 from spatialdata._types import ArrayLike
-from spatialdata.models import (
-    SpatialElement,
-)
+from spatialdata.models import SpatialElement
 
 from spatialdata_plot._logging import logger
 from spatialdata_plot.pl._scanpy_compat import (
@@ -516,10 +514,12 @@ def _fetch_color_source_vector(
     origins: list[Any],
     explicit_table_shadows_df: bool,
     preloaded_color_data: pd.Series | None,
+    background_label: int,
 ) -> ArrayLike | pd.Series:
     """Read the raw color column, preferring a direct aligned read over a whole-table join."""
     if preloaded_color_data is not None:
         return preloaded_color_data
+    background_kwargs = {"background_label": background_label} if background_label != 0 else {}
     if (
         isinstance(element, GeoDataFrame)
         and isinstance(element_name, str)
@@ -545,6 +545,7 @@ def _fetch_color_source_vector(
             element=sdata[table_name],
             element_name=element_name,
             table_layer=table_layer,
+            **background_kwargs,
         )[value_to_plot]
     return get_values(
         value_key=value_to_plot,
@@ -552,6 +553,7 @@ def _fetch_color_source_vector(
         element_name=element_name,
         table_name=table_name,
         table_layer=table_layer,
+        **background_kwargs,
     )[value_to_plot]
 
 
@@ -587,6 +589,7 @@ def _set_color_source_vec(
     render_type: Literal["points", "labels"] | None = None,
     coordinate_system: str | None = None,
     preloaded_color_data: pd.Series | None = None,
+    background_label: int = 0,
 ) -> tuple[ArrayLike | pd.Series | None, ArrayLike, bool]:
     if value_to_plot is None and element is not None:
         color = np.full(len(element), na_color.get_hex_with_alpha())
@@ -612,6 +615,7 @@ def _set_color_source_vec(
             origins=origins,
             explicit_table_shadows_df=explicit_table_shadows_df,
             preloaded_color_data=preloaded_color_data,
+            background_label=background_label,
         )
 
         color_series = (

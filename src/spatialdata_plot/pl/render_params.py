@@ -358,6 +358,7 @@ class LabelsRenderParams(RenderParams):
     """Labels render parameters."""
 
     cmap_params: CmapParams
+    background_label: int = 0
     color: Color | None = None
     col_for_color: str | None = None
     col_for_outline_color: str | None = None
